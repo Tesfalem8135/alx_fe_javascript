@@ -1,10 +1,8 @@
-// Initial quotes database
 let quotes = [];
 let currentCategory = null;
 let lastSyncTime = null;
 let serverQuotes = [];
 
-// DOM elements
 const quoteDisplay = document.getElementById('quoteDisplay');
 const newQuoteBtn = document.getElementById('newQuote');
 const showAddFormBtn = document.getElementById('showAddForm');
@@ -19,7 +17,6 @@ const syncStatus = document.getElementById('syncStatus');
 const updateNotification = document.getElementById('updateNotification');
 const conflictNotification = document.getElementById('conflictNotification');
 
-// Initialize the app
 document.addEventListener('DOMContentLoaded', function () {
   loadQuotes();
   newQuoteBtn.addEventListener('click', showRandomQuote);
@@ -28,19 +25,20 @@ document.addEventListener('DOMContentLoaded', function () {
   importInput.addEventListener('change', importFromJsonFile);
   clearStorageBtn.addEventListener('click', clearAllData);
   categoryFilter.addEventListener('change', filterQuotes);
-  syncNowBtn.addEventListener('click', syncWithServer);
+  syncNowBtn.addEventListener('click', syncQuotes);
+
   populateCategories();
   updateCategoryButtons();
   loadLastViewed();
   loadLastFilter();
-  setInterval(syncWithServer, 300000);
-  setTimeout(syncWithServer, 2000);
+
+  setInterval(syncQuotes, 300000);
+  setTimeout(syncQuotes, 2000);
 });
 
 // ======================
 // Storage Functions
 // ======================
-
 function loadQuotes() {
   const storedQuotes = localStorage.getItem('quotes');
   if (storedQuotes) {
@@ -86,9 +84,8 @@ function loadLastFilter() {
 }
 
 // ======================
-// Quote Display Functions
+// Quote Display
 // ======================
-
 function showRandomQuote() {
   let filteredQuotes = currentCategory
     ? quotes.filter(quote => quote.category === currentCategory)
@@ -112,9 +109,8 @@ function showRandomQuote() {
 }
 
 // ======================
-// Category Management
+// Category
 // ======================
-
 function populateCategories() {
   while (categoryFilter.options.length > 1) {
     categoryFilter.remove(1);
@@ -137,9 +133,8 @@ function filterQuotes() {
 }
 
 // ======================
-// Quote Management
+// Add Quote
 // ======================
-
 function createAddQuoteForm() {
   const existingForm = document.querySelector('.add-quote-form');
   if (existingForm) {
@@ -187,9 +182,8 @@ function addQuote() {
 }
 
 // ======================
-// Import/Export Functions
+// Import/Export
 // ======================
-
 function exportToJson() {
   try {
     const jsonString = JSON.stringify(quotes, null, 2);
@@ -213,19 +207,14 @@ function importFromJsonFile(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const fileReader = new FileReader();
-  fileReader.onload = function (e) {
+  const reader = new FileReader();
+  reader.onload = function (e) {
     try {
       const importedQuotes = JSON.parse(e.target.result);
+      if (!Array.isArray(importedQuotes)) throw new Error('Expected an array of quotes');
 
-      if (!Array.isArray(importedQuotes)) {
-        throw new Error('Invalid format: Expected an array of quotes');
-      }
-
-      for (const quote of importedQuotes) {
-        if (!quote.text || !quote.category) {
-          throw new Error('Invalid quote format: Each quote must have text and category');
-        }
+      for (const q of importedQuotes) {
+        if (!q.text || !q.category) throw new Error('Missing fields in some quotes');
       }
 
       quotes = importedQuotes;
@@ -233,17 +222,16 @@ function importFromJsonFile(event) {
       populateCategories();
       updateCategoryButtons();
       showRandomQuote();
-      alert(`Successfully imported ${importedQuotes.length} quotes!`);
-      event.target.value = '';
-    } catch (error) {
-      alert('Error importing quotes: ' + error.message);
+      alert(`Imported ${quotes.length} quotes!`);
+    } catch (err) {
+      alert('Import failed: ' + err.message);
     }
   };
-  fileReader.readAsText(file);
+  reader.readAsText(file);
 }
 
 function clearAllData() {
-  if (confirm('Are you sure you want to clear all quotes and reset to default?')) {
+  if (confirm('Are you sure you want to clear all quotes and reset?')) {
     localStorage.removeItem('quotes');
     sessionStorage.removeItem('lastViewed');
     localStorage.removeItem('lastFilter');
@@ -252,19 +240,17 @@ function clearAllData() {
     updateCategoryButtons();
     showRandomQuote();
     lastViewedDisplay.textContent = '';
-    alert('All data has been reset to default.');
+    alert('Data reset to default.');
   }
 }
 
 // ======================
-// Server Sync Functions
+// Sync (GET + POST)
 // ======================
-
 async function fetchQuotesFromServer() {
   const response = await fetch('https://jsonplaceholder.typicode.com/posts');
-  const serverData = await response.json();
-
-  return serverData.slice(0, 5).map(post => ({
+  const data = await response.json();
+  return data.slice(0, 5).map(post => ({
     text: post.title,
     category: 'server'
   }));
@@ -273,20 +259,19 @@ async function fetchQuotesFromServer() {
 async function syncWithServer() {
   try {
     serverQuotes = await fetchQuotesFromServer();
-
     const lastUpdate = localStorage.getItem('lastUpdate') || 0;
     const serverUpdateTime = Date.now() - 3600000;
 
     if (serverUpdateTime > lastUpdate) {
-      if (confirm('New quotes available from server. Would you like to update?')) {
+      if (confirm('New quotes from server. Update local list?')) {
         acceptServerChanges();
       }
     }
 
     lastSyncTime = Date.now();
     syncStatus.textContent = `Last sync: ${new Date(lastSyncTime).toLocaleTimeString()}`;
-  } catch (error) {
-    console.error('Sync failed:', error);
+  } catch (e) {
+    console.error('Sync failed', e);
     syncStatus.textContent = 'Last sync: Failed';
   }
 }
@@ -298,7 +283,7 @@ function acceptServerChanges() {
   updateCategoryButtons();
   showRandomQuote();
   updateNotification.style.display = 'none';
-  alert('Server changes applied successfully!');
+  alert('Server quotes added.');
 }
 
 function resolveConflict() {
@@ -307,7 +292,7 @@ function resolveConflict() {
 
 async function postQuotesToServer() {
   try {
-    const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+    const res = await fetch('https://jsonplaceholder.typicode.com/posts', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -315,63 +300,64 @@ async function postQuotesToServer() {
       body: JSON.stringify(quotes)
     });
 
-    if (!response.ok) throw new Error('Failed to post quotes');
-
-    const result = await response.json();
-    console.log('Posted to server:', result);
-    alert('Quotes successfully posted to the server!');
-  } catch (error) {
-    console.error('Post failed:', error);
-    alert('Failed to post quotes to server.');
+    if (!res.ok) throw new Error('POST failed');
+    const data = await res.json();
+    console.log('Posted:', data);
+    alert('Quotes posted to server!');
+  } catch (err) {
+    console.error(err);
+    alert('Post failed.');
   }
 }
 
-// ======================
-// UI Update Functions
-// ======================
+// ✅ This is the required function
+function syncQuotes() {
+  syncWithServer();
+}
 
+// ======================
+// UI
+// ======================
 function updateCategoryButtons() {
   categoryButtonsContainer.innerHTML = '';
 
-  const allButton = document.createElement('button');
-  allButton.textContent = 'All';
-  allButton.className = !currentCategory ? 'active' : '';
-  allButton.addEventListener('click', () => {
+  const allBtn = document.createElement('button');
+  allBtn.textContent = 'All';
+  allBtn.className = !currentCategory ? 'active' : '';
+  allBtn.addEventListener('click', () => {
     currentCategory = null;
     categoryFilter.value = 'all';
     saveLastFilter();
     updateCategoryButtons();
     showRandomQuote();
   });
-  categoryButtonsContainer.appendChild(allButton);
+  categoryButtonsContainer.appendChild(allBtn);
 
-  const categories = [...new Set(quotes.map(quote => quote.category))];
-
+  const categories = [...new Set(quotes.map(q => q.category))];
   categories.forEach(category => {
-    const button = document.createElement('button');
-    button.textContent = category;
-    button.className = currentCategory === category ? 'active' : '';
-    button.addEventListener('click', () => {
+    const btn = document.createElement('button');
+    btn.textContent = category;
+    btn.className = currentCategory === category ? 'active' : '';
+    btn.addEventListener('click', () => {
       currentCategory = category;
       categoryFilter.value = category;
       saveLastFilter();
       updateCategoryButtons();
       showRandomQuote();
     });
-    categoryButtonsContainer.appendChild(button);
+    categoryButtonsContainer.appendChild(btn);
   });
 
-  const addCategoryButton = document.createElement('button');
-  addCategoryButton.textContent = '+ Add Category';
-  addCategoryButton.addEventListener('click', () => {
-    const newCategory = prompt('Enter a new category name:');
-    if (newCategory && newCategory.trim()) {
-      currentCategory = newCategory.trim().toLowerCase();
+  const addBtn = document.createElement('button');
+  addBtn.textContent = '+ Add Category';
+  addBtn.addEventListener('click', () => {
+    const cat = prompt('New category:');
+    if (cat && cat.trim()) {
+      currentCategory = cat.trim().toLowerCase();
       categoryFilter.value = currentCategory;
       saveLastFilter();
       updateCategoryButtons();
       showRandomQuote();
     }
   });
-  categoryButtonsContainer.appendChild(addCategoryButton);
-}
+  categoryButtonsContainer.appendChild(addBtn);
