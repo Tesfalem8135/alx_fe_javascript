@@ -33,8 +33,8 @@ document.addEventListener('DOMContentLoaded', function () {
   updateCategoryButtons();
   loadLastViewed();
   loadLastFilter();
-  setInterval(syncWithServer, 300000); // Every 5 min
-  setTimeout(syncWithServer, 2000); // Initial sync after 2 sec
+  setInterval(syncWithServer, 300000);
+  setTimeout(syncWithServer, 2000);
 });
 
 // ======================
@@ -305,6 +305,27 @@ function resolveConflict() {
   acceptServerChanges();
 }
 
+async function postQuotesToServer() {
+  try {
+    const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(quotes)
+    });
+
+    if (!response.ok) throw new Error('Failed to post quotes');
+
+    const result = await response.json();
+    console.log('Posted to server:', result);
+    alert('Quotes successfully posted to the server!');
+  } catch (error) {
+    console.error('Post failed:', error);
+    alert('Failed to post quotes to server.');
+  }
+}
+
 // ======================
 // UI Update Functions
 // ======================
@@ -353,3 +374,4 @@ function updateCategoryButtons() {
     }
   });
   categoryButtonsContainer.appendChild(addCategoryButton);
+}
