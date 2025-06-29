@@ -16,6 +16,7 @@ const syncNowBtn = document.getElementById('syncNow');
 const syncStatus = document.getElementById('syncStatus');
 const updateNotification = document.getElementById('updateNotification');
 const conflictNotification = document.getElementById('conflictNotification');
+const syncNotification = document.getElementById('syncNotification'); // NEW
 
 document.addEventListener('DOMContentLoaded', function () {
   loadQuotes();
@@ -32,8 +33,8 @@ document.addEventListener('DOMContentLoaded', function () {
   loadLastViewed();
   loadLastFilter();
 
-  setInterval(syncQuotes, 300000);
-  setTimeout(syncQuotes, 2000);
+  setInterval(syncQuotes, 300000); // every 5 minutes
+  setTimeout(syncQuotes, 2000);    // initial sync after 2 seconds
 });
 
 // ======================
@@ -245,7 +246,7 @@ function clearAllData() {
 }
 
 // ======================
-// Sync (GET + POST)
+// Sync Functions
 // ======================
 async function fetchQuotesFromServer() {
   const response = await fetch('https://jsonplaceholder.typicode.com/posts');
@@ -263,9 +264,7 @@ async function syncWithServer() {
     const serverUpdateTime = Date.now() - 3600000;
 
     if (serverUpdateTime > lastUpdate) {
-      if (confirm('New quotes from server. Update local list?')) {
-        acceptServerChanges();
-      }
+      acceptServerChanges();
     }
 
     lastSyncTime = Date.now();
@@ -276,6 +275,17 @@ async function syncWithServer() {
   }
 }
 
+// ✅ Required syncQuotes() function + notification
+function syncQuotes() {
+  syncWithServer().then(() => {
+    syncNotification.textContent = 'Quotes synced with server!';
+    syncNotification.style.display = 'block';
+    setTimeout(() => {
+      syncNotification.style.display = 'none';
+    }, 3000);
+  });
+}
+
 function acceptServerChanges() {
   quotes = [...quotes, ...serverQuotes];
   saveQuotes();
@@ -283,36 +293,24 @@ function acceptServerChanges() {
   updateCategoryButtons();
   showRandomQuote();
   updateNotification.style.display = 'none';
-  alert('Server quotes added.');
 }
 
-function resolveConflict() {
-  acceptServerChanges();
-}
-
-async function postQuotesToServer() {
-  try {
-    const res = await fetch('https://jsonplaceholder.typicode.com/posts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(quotes)
+function postQuotesToServer() {
+  fetch('https://jsonplaceholder.typicode.com/posts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(quotes)
+  })
+    .then(res => res.json())
+    .then(data => {
+      alert('Quotes posted to server!');
+      console.log('Posted:', data);
+    })
+    .catch(err => {
+      alert('Error posting quotes: ' + err.message);
     });
-
-    if (!res.ok) throw new Error('POST failed');
-    const data = await res.json();
-    console.log('Posted:', data);
-    alert('Quotes posted to server!');
-  } catch (err) {
-    console.error(err);
-    alert('Post failed.');
-  }
-}
-
-// ✅ This is the required function
-function syncQuotes() {
-  syncWithServer();
 }
 
 // ======================
