@@ -15,7 +15,6 @@ let currentCategory = null;
 const quoteDisplay = document.getElementById('quoteDisplay');
 const newQuoteBtn = document.getElementById('newQuote');
 const showAddFormBtn = document.getElementById('showAddForm');
-const addQuoteForm = document.getElementById('addQuoteForm');
 const categoryButtonsContainer = document.getElementById('categoryButtons');
 
 // Initialize the app
@@ -25,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Set up event listeners
   newQuoteBtn.addEventListener('click', showRandomQuote);
-  showAddFormBtn.addEventListener('click', showAddForm);
+  showAddFormBtn.addEventListener('click', createAddQuoteForm);
   
   // Generate category buttons
   updateCategoryButtons();
@@ -51,17 +50,39 @@ function showRandomQuote() {
   `;
 }
 
-// Show the form to add new quotes
-function showAddForm() {
-  addQuoteForm.style.display = 'block';
-}
+// Create the form to add new quotes (dynamically)
+function createAddQuoteForm() {
+  // Remove any existing form first
+  const existingForm = document.getElementById('dynamicAddForm');
+  if (existingForm) {
+    existingForm.remove();
+  }
 
-// Hide the add quote form
-function hideAddForm() {
-  addQuoteForm.style.display = 'none';
-  // Clear the form fields
-  document.getElementById('newQuoteText').value = '';
-  document.getElementById('newQuoteCategory').value = '';
+  // Create form container
+  const formContainer = document.createElement('div');
+  formContainer.id = 'dynamicAddForm';
+  formContainer.style.marginTop = '30px';
+  formContainer.style.padding = '20px';
+  formContainer.style.backgroundColor = '#f0f0f0';
+  formContainer.style.borderRadius = '5px';
+
+  // Create form elements
+  formContainer.innerHTML = `
+    <h3>Add New Quote</h3>
+    <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
+    <input id="newQuoteCategory" type="text" placeholder="Enter quote category" />
+    <button id="submitNewQuote">Add Quote</button>
+    <button id="cancelAddQuote">Cancel</button>
+  `;
+
+  // Insert the form after the quote display
+  quoteDisplay.insertAdjacentElement('afterend', formContainer);
+
+  // Add event listeners
+  document.getElementById('submitNewQuote').addEventListener('click', addQuote);
+  document.getElementById('cancelAddQuote').addEventListener('click', () => {
+    formContainer.remove();
+  });
 }
 
 // Add a new quote to the collection
@@ -80,8 +101,10 @@ function addQuote() {
   // Add the new quote
   quotes.push({ text, category });
   
+  // Remove the form
+  document.getElementById('dynamicAddForm').remove();
+  
   // Update UI
-  hideAddForm();
   updateCategoryButtons();
   showRandomQuote();
   
