@@ -1,14 +1,5 @@
 // Initial quotes database
-let quotes = [
-  { text: "The only way to do great work is to love what you do.", category: "inspiration" },
-  { text: "Innovation distinguishes between a leader and a follower.", category: "leadership" },
-  { text: "Your time is limited, don't waste it living someone else's life.", category: "life" },
-  { text: "Stay hungry, stay foolish.", category: "inspiration" },
-  { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", category: "life" },
-  { text: "The way to get started is to quit talking and begin doing.", category: "motivation" }
-];
-
-// Current selected category (null means all categories)
+let quotes = [];
 let currentCategory = null;
 
 // DOM elements
@@ -16,19 +7,64 @@ const quoteDisplay = document.getElementById('quoteDisplay');
 const newQuoteBtn = document.getElementById('newQuote');
 const showAddFormBtn = document.getElementById('showAddForm');
 const categoryButtonsContainer = document.getElementById('categoryButtons');
+const exportBtn = document.getElementById('exportQuotes');
+const importInput = document.getElementById('importFile');
+const clearStorageBtn = document.getElementById('clearStorage');
+const lastViewedDisplay = document.getElementById('lastViewed');
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-  // Display first quote
-  showRandomQuote();
+  // Load quotes from local storage
+  loadQuotes();
   
   // Set up event listeners
   newQuoteBtn.addEventListener('click', showRandomQuote);
   showAddFormBtn.addEventListener('click', createAddQuoteForm);
+  exportBtn.addEventListener('click', exportToJson);
+  importInput.addEventListener('change', importFromJsonFile);
+  clearStorageBtn.addEventListener('click', clearAllData);
   
   // Generate category buttons
   updateCategoryButtons();
+  
+  // Load last viewed quote from session storage
+  loadLastViewed();
 });
+
+// Load quotes from local storage
+function loadQuotes() {
+  const storedQuotes = localStorage.getItem('quotes');
+  if (storedQuotes) {
+    quotes = JSON.parse(storedQuotes);
+  } else {
+    // Default quotes if none are stored
+    quotes = [
+      { text: "The only way to do great work is to love what you do.", category: "inspiration" },
+      { text: "Innovation distinguishes between a leader and a follower.", category: "leadership" },
+      { text: "Your time is limited, don't waste it living someone else's life.", category: "life" }
+    ];
+    saveQuotes();
+  }
+}
+
+// Save quotes to local storage
+function saveQuotes() {
+  localStorage.setItem('quotes', JSON.stringify(quotes));
+}
+
+// Save last viewed quote to session storage
+function saveLastViewed(quote) {
+  sessionStorage.setItem('lastViewed', JSON.stringify(quote));
+}
+
+// Load last viewed quote from session storage
+function loadLastViewed() {
+  const lastViewed = sessionStorage.getItem('lastViewed');
+  if (lastViewed) {
+    const quote = JSON.parse(lastViewed);
+    lastViewedDisplay.textContent = `Last viewed: "${quote.text}" (${quote.category})`;
+  }
+}
 
 // Display a random quote
 function showRandomQuote() {
@@ -48,19 +84,23 @@ function showRandomQuote() {
     <blockquote>"${quote.text}"</blockquote>
     <p class="category">— ${quote.category}</p>
   `;
+  
+  // Save to session storage
+  saveLastViewed(quote);
+  loadLastViewed();
 }
 
-// Create the form to add new quotes (dynamically)
+// Create the form to add new quotes
 function createAddQuoteForm() {
   // Remove any existing form first
-  const existingForm = document.getElementById('dynamicAddForm');
+  const existingForm = document.querySelector('.add-quote-form');
   if (existingForm) {
     existingForm.remove();
   }
 
   // Create form container
   const formContainer = document.createElement('div');
-  formContainer.id = 'dynamicAddForm';
+  formContainer.className = 'add-quote-form';
   formContainer.style.marginTop = '30px';
   formContainer.style.padding = '20px';
   formContainer.style.backgroundColor = '#f0f0f0';
@@ -101,8 +141,11 @@ function addQuote() {
   // Add the new quote
   quotes.push({ text, category });
   
+  // Save to local storage
+  saveQuotes();
+  
   // Remove the form
-  document.getElementById('dynamicAddForm').remove();
+  document.querySelector('.add-quote-form').remove();
   
   // Update UI
   updateCategoryButtons();
@@ -110,6 +153,68 @@ function addQuote() {
   
   // Notify user
   alert('Quote added successfully!');
+}
+
+// Export quotes to JSON file
+function exportToJson() {
+  const dataStr = JSON.stringify(quotes, null, 2);
+  const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+  
+  const exportFileDefaultName = 'quotes.json';
+  
+  const linkElement = document.createElement('a');
+  linkElement.setAttribute('href', dataUri);
+  linkElement.setAttribute('download', exportFileDefaultName);
+  linkElement.click();
+}
+
+// Import quotes from JSON file
+function importFromJsonFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const fileReader = new FileReader();
+  fileReader.onload = function(e) {
+    try {
+      const importedQuotes = JSON.parse(e.target.result);
+      
+      if (!Array.isArray(importedQuotes)) {
+        throw new Error('Invalid format: Expected an array of quotes');
+      }
+      
+      // Validate each quote
+      for (const quote of importedQuotes) {
+        if (!quote.text || !quote.category) {
+          throw new Error('Invalid quote format: Each quote must have text and category');
+        }
+      }
+      
+      quotes = importedQuotes;
+      saveQuotes();
+      updateCategoryButtons();
+      showRandomQuote();
+      alert(`Successfully imported ${importedQuotes.length} quotes!`);
+      
+      // Reset file input
+      event.target.value = '';
+    } catch (error) {
+      alert('Error importing quotes: ' + error.message);
+    }
+  };
+  fileReader.readAsText(file);
+}
+
+// Clear all data
+function clearAllData() {
+  if (confirm('Are you sure you want to clear all quotes and reset to default?')) {
+    localStorage.removeItem('quotes');
+    sessionStorage.removeItem('lastViewed');
+    loadQuotes();
+    updateCategoryButtons();
+    showRandomQuote();
+    lastViewedDisplay.textContent = '';
+    alert('All data has been reset to default.');
+  }
 }
 
 // Update the category filter buttons

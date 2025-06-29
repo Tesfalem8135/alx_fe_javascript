@@ -44,11 +44,16 @@
     .active {
       background-color: #2ecc71;
     }
-    #addQuoteForm {
+    .storage-actions {
       margin-top: 30px;
       padding: 20px;
       background-color: #f0f0f0;
       border-radius: 5px;
+    }
+    #lastViewed {
+      font-style: italic;
+      color: #666;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -61,15 +66,16 @@
     <p>Click "Show New Quote" to see your first quote!</p>
   </div>
   
+  <div id="lastViewed"></div>
+  
   <button id="newQuote">Show New Quote</button>
   <button id="showAddForm">Add New Quote</button>
   
-  <div id="addQuoteForm" style="display: none;">
-    <h3>Add New Quote</h3>
-    <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
-    <input id="newQuoteCategory" type="text" placeholder="Enter quote category" />
-    <button onclick="addQuote()">Add Quote</button>
-    <button onclick="hideAddForm()">Cancel</button>
+  <div class="storage-actions">
+    <h3>Data Management</h3>
+    <button id="exportQuotes">Export Quotes to JSON</button>
+    <input type="file" id="importFile" accept=".json" />
+    <button id="clearStorage">Clear All Data</button>
   </div>
   
   <script src="script.js"></script>
