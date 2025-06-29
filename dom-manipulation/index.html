@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dynamic Quote Generator</title>
-  <style>
+ <style>
     body {
       font-family: Arial, sans-serif;
       max-width: 800px;
@@ -17,6 +17,7 @@
       padding: 20px;
       border-left: 5px solid #3498db;
       background-color: #f8f9fa;
+      min-height: 100px;
     }
     button {
       background-color: #3498db;
@@ -30,7 +31,7 @@
     button:hover {
       background-color: #2980b9;
     }
-    input {
+    input, select {
       padding: 8px;
       margin: 5px;
       width: 300px;
@@ -55,10 +56,53 @@
       color: #666;
       margin-top: 10px;
     }
+    .add-quote-form {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: #f0f0f0;
+      border-radius: 5px;
+    }
+    #importFile {
+      display: none;
+    }
+    .import-btn {
+      background-color: #27ae60;
+    }
+    .export-btn {
+      background-color: #e67e22;
+    }
+    .clear-btn {
+      background-color: #e74c3c;
+    }
+    .sync-section {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #fff8e1;
+      border-radius: 5px;
+    }
+    .notification {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      display: none;
+    }
+    .update-notification {
+      background-color: #e3f2fd;
+    }
+    .conflict-notification {
+      background-color: #ffebee;
+    }
   </style>
 </head>
 <body>
   <h1>Dynamic Quote Generator</h1>
+  
+  <div class="filter-section">
+    <h3>Filter Quotes</h3>
+    <select id="categoryFilter">
+      <option value="all">All Categories</option>
+    </select>
+  </div>
   
   <div class="category-buttons" id="categoryButtons"></div>
   
@@ -73,11 +117,24 @@
   
   <div class="storage-actions">
     <h3>Data Management</h3>
-    <button id="exportQuotes">Export Quotes to JSON</button>
+    <button id="exportQuotes" class="export-btn">Export Quotes to JSON</button>
+    <button onclick="document.getElementById('importFile').click()" class="import-btn">Import Quotes from JSON</button>
     <input type="file" id="importFile" accept=".json" />
-    <button id="clearStorage">Clear All Data</button>
+    <button id="clearStorage" class="clear-btn">Clear All Data</button>
   </div>
   
-  <script src="script.js"></script>
+  <div class="sync-section">
+    <h3>Data Sync</h3>
+    <button id="syncNow">Sync with Server Now</button>
+    <div id="syncStatus">Last sync: Never</div>
+    
+    <div id="updateNotification" class="notification update-notification">
+      New quotes available from server! <button onclick="acceptServerChanges()">Update</button>
+    </div>
+    
+    <div id="conflictNotification" class="notification conflict-notification">
+      Conflict detected! Server has newer version. <button onclick="resolveConflict()">Resolve</button>
+    </div>
+  </div>
 </body>
 </html>
